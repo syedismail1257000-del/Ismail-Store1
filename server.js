@@ -4,19 +4,16 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const jwt = require("jsonwebtoken");
-
 const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
-
 // --- IN-MEMORY STORAGE (For when DB is not connected) ---
 let sessionProducts = [
     { _id: "m1", name: "Luxury Chronograph", price: 45000, image: "https://images.unsplash.com/photo-1547996160-81dfa63595dd?w=800&q=80", inStock: true },
     { _id: "m2", name: "Premium Audio Pro", price: 32000, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80", inStock: true }
 ];
 let sessionOrders = [];
-
 // --- DATABASE ---
 let dbConnected = false;
 const connectDB = async () => {
@@ -30,19 +27,16 @@ const connectDB = async () => {
     }
 };
 connectDB();
-
 // --- SCHEMAS ---
 const OrderSchema = new mongoose.Schema({
     customerName: String, address: String, phone: String, city: String,
     productName: String, totalPrice: Number, date: { type: Date, default: Date.now }
 });
 const Order = mongoose.models.Order || mongoose.model("Order", OrderSchema);
-
 const ProductSchema = new mongoose.Schema({
     name: String, price: Number, image: String, inStock: { type: Boolean, default: true }
 });
 const Product = mongoose.models.Product || mongoose.model("Product", ProductSchema);
-
 // --- AUTH ---
 const auth = (req, res, next) => {
     const token = req.header("Authorization");
@@ -54,12 +48,10 @@ const auth = (req, res, next) => {
         next();
     } catch (err) { res.status(401).json({ msg: "Invalid token" }); }
 };
-
 // --- LOGIN ---
 const ADMIN_EMAIL = "syedismail12570@gmail.com";
 const PASS_1 = "Knightrider1234@";
 const PASS_2 = "ismail786";
-
 app.post(["/api/admin/login", "/admin/login"], (req, res) => {
     const email = (req.body.email || "").toLowerCase().trim();
     const password = (req.body.password || "").trim();
@@ -69,7 +61,6 @@ app.post(["/api/admin/login", "/admin/login"], (req, res) => {
     }
     res.status(401).json({ msg: "Incorrect credentials." });
 });
-
 // --- PRODUCTS API ---
 app.get("/api/products", async (req, res) => {
     try {
@@ -78,7 +69,6 @@ app.get("/api/products", async (req, res) => {
         res.json([...dbProducts, ...sessionProducts]);
     } catch (e) { res.json(sessionProducts); }
 });
-
 app.post("/api/products", auth, async (req, res) => {
     const { name, price, image } = req.body;
     if (dbConnected) {
@@ -92,7 +82,6 @@ app.post("/api/products", auth, async (req, res) => {
     sessionProducts.unshift(newP);
     res.json(newP);
 });
-
 app.patch("/api/products/:id/stock", auth, async (req, res) => {
     const { id } = req.params;
     if (dbConnected && !id.startsWith("s") && !id.startsWith("m")) {
@@ -112,7 +101,6 @@ app.patch("/api/products/:id/stock", auth, async (req, res) => {
     }
     res.status(404).json({ message: "Product not found" });
 });
-
 app.delete("/api/products/:id", auth, async (req, res) => {
     const { id } = req.params;
     if (dbConnected && !id.startsWith("s") && !id.startsWith("m")) {
@@ -124,7 +112,6 @@ app.delete("/api/products/:id", auth, async (req, res) => {
     sessionProducts = sessionProducts.filter(p => p._id !== id);
     res.json({ msg: "deleted from session" });
 });
-
 // --- ORDERS API ---
 app.post("/api/orders", async (req, res) => {
     const { customerName, address, phone, city, productName, productPrice } = req.body;
@@ -140,7 +127,6 @@ app.post("/api/orders", async (req, res) => {
     sessionOrders.unshift(newO);
     res.json(newO);
 });
-
 app.get("/api/orders", auth, async (req, res) => {
     try {
         let dbOrders = [];
@@ -148,7 +134,6 @@ app.get("/api/orders", auth, async (req, res) => {
         res.json([...dbOrders, ...sessionOrders]);
     } catch (e) { res.json(sessionOrders); }
 });
-
 // --- FRONTEND ---
 app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "index.html")); });
 app.get("/api/status", (req, res) => { res.json({ version: "v7.0-Stable", db: dbConnected }); });
@@ -156,7 +141,6 @@ app.use((req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(__dirname, "index.html"));
 });
-
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => console.log(`Ismail Store running at http://localhost:${PORT}`));
